@@ -1,0 +1,22 @@
+{
+  "name": "websocket-collection",
+  "version": "1.0.0",
+  "description": "WebSocket connection",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/den9yon9/websocket-collection.git"
+  },
+  "keywords": [
+    "websocket"
+  ],
+  "author": "yong",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/den9yon9/websocket-collection/issues"
+  },
+  "homepage": "https://github.com/den9yon9/websocket-collection#readme"
+}
