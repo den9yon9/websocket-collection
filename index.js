@@ -1,7 +1,9 @@
-async function connect(options) {
+export default async function connect(options) {
   let {
     url,
     onMessage,
+    connectCount = Infinity,
+    connectInterval = 5000,
     heartBeat: {
       enable: heartBeatEnable = false,
       ping = "ping",
@@ -17,13 +19,17 @@ async function connect(options) {
 
   await new Promise((resolve, reject) => {
     connect.client.addEventListener("open", function (event) {
-      console.info(`onopen: webconnect.client连接成功`);
-      resolve("onopen: webconnect.client连接成功");
+      console.info(`onopen: websocket连接成功`);
+      resolve("onopen: websocket连接成功");
     });
 
     connect.client.addEventListener("error", function (event) {
-      console.error("onerror: webconnect.client连接失败");
-      reject(new Error("onerror: webconnect.client连接失败"));
+      if (connectCount <= 0) {
+        reject(new Error("onerror: websocket连接失败"));
+      } else {
+        console.info(`onerror: websocket连接失败:${connectInterval / 1000}s后将继续进行${connectCount}次重连`)
+        setTimeout(connect.bind(this, { ...options, connectCount: --connectCount }))
+      }
     });
   });
 
@@ -37,17 +43,17 @@ async function connect(options) {
   // ping
   if (heartBeatEnable) {
     connect.client.timer = setInterval(function () {
-      connect.client.send(ping);
+      connect.send(ping);
       console.log(`>>> ping`);
     }, heartBeatInterval);
   }
 
   connect.client.addEventListener("close", function (event) {
     clearInterval(connect.client.timer);
-    console.info(`onclose: webconnect.client已关闭    (关闭原因: ${event.reason})`);
+    console.info(`onclose: websocket已关闭    (关闭原因: ${event.reason})`);
     if (event.code === 1000) return event.reason;
-    console.info("5s后将重新连接webconnect.client...");
-    setTimeout(connect.bind(this, options), 5000);
+    console.info(`${connectInterval / 1000}s后将重新连接websocket...`);
+    setTimeout(connect.bind(this, options), connectInterval);
   });
 
   connect.send = function (message) {
@@ -60,5 +66,3 @@ async function connect(options) {
 
   return connect;
 }
-
-export default connect;
