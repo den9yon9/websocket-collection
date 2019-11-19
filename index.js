@@ -28,7 +28,7 @@ export default async function connect(options) {
         reject(new Error("onerror: websocket连接失败"));
       } else {
         console.info(`onerror: websocket连接失败:${connectInterval / 1000}s后将继续进行${connectCount}次重连`)
-        setTimeout(connect.bind(this, { ...options, connectCount: --connectCount }))
+        setTimeout(connect.bind(this, { ...options, connectCount: --connectCount }), connectInterval)
       }
     });
   });
