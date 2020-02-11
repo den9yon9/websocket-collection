@@ -1,19 +1,26 @@
 export default async function connect(options) {
+
+  if (typeof options !== 'object' || options === null) {
+    throw new Error(`初始化参数格式错误=>options: ${options}`)
+  }
+
   let {
-    url,
-    onMessage,
-    connectCount = Infinity,
-    connectInterval = 5000,
-    heartBeat: {
-      enable: heartBeatEnable = false,
-      ping = "ping",
-      interval: heartBeatInterval = 1 * 60 * 1000
-    } = {
-      enable: false,
-      ping: "ping",
-      interval: 1 * 60 * 1000
-    }
+    url, // websocket服务地址
+    onMessage, // socket消息回调函数
+    connectCount = Infinity, // 连接失败重试次数
+    connectInterval = 5000,  // 重连时间间隔
+    heartBeat: { // 心跳配置
+      enable: heartBeatEnable = false, // 心跳开关
+      ping = "ping", // 心跳信号内容
+      interval: heartBeatInterval = 1 * 60 * 1000 // 心跳时间间隔
+    } = {}
   } = options;
+
+  if (typeof url !== 'string') {
+    throw new Error(`url参数格式错误=>url: ${url}`)
+  } else if (typeof onMessage !== 'function') {
+    throw new Error(`onMessage参数错误=>onMessage: ${onMessage}`)
+  }
 
   connect.client = new WebSocket(url);
 
@@ -50,7 +57,7 @@ export default async function connect(options) {
 
   connect.client.addEventListener("close", function (event) {
     clearInterval(connect.client.timer);
-    console.info(`onclose: websocket已关闭    (关闭原因: ${event.reason})`);
+    console.info(`onclose: websocket已关闭, code:${event.code}, reason: ${event.reason})`);
     if (event.code === 1000) return event.reason;
     console.info(`${connectInterval / 1000}s后将重新连接websocket...`);
     setTimeout(connect.bind(this, options), connectInterval);
@@ -60,8 +67,9 @@ export default async function connect(options) {
     connect.client.send(message);
   };
 
-  connect.close = function () {
-    connect.client.close(1000, "主动关闭");
+  connect.close = function (reason = "客户端关闭了连接") {
+    const code = 1000
+    connect.client.close(code, reason);
   };
 
   return connect;
