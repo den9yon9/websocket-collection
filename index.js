@@ -7,6 +7,7 @@ export default async function connect(options) {
   let {
     url, // websocket服务地址
     onMessage, // socket消息回调函数
+    onFail, // socket连接失败
     connectCount = Infinity, // 连接失败重试次数
     connectInterval = 5000,  // 重连时间间隔
     heartBeat: { // 心跳配置
@@ -31,20 +32,18 @@ export default async function connect(options) {
     });
 
     connect.client.addEventListener("error", function (event) {
-      if (connectCount <= 0) {
-        reject(new Error("onerror: websocket连接失败"));
-      } else {
-        console.info(`onerror: websocket连接失败:${connectInterval / 1000}s后将继续进行${connectCount}次重连`)
-        setTimeout(connect.bind(this, { ...options, connectCount: --connectCount }), connectInterval)
-      }
+      console.info(`onerror: websocket连接失败`)
+      if (connectCount <= 0) return reject(new Error("websocket重连失败"));
+      console.info(`${connectInterval / 1000}s后将继续进行${connectCount}次重连`)
+      setTimeout(connect.bind(this, { ...options, connectCount: --connectCount }), connectInterval)
     });
-  });
+  }).catch(onFail);
 
   connect.client.addEventListener("message", message => {
-    let data = JSON.parse(message.data);
-    if (heartBeatEnable && data.messageType === "heart")
-      return console.log(`<<< pong`);
-    onMessage && onMessage(data);
+    // let data = JSON.parse(message.data);
+    // if (heartBeatEnable && data.messageType === "heart")
+    // return console.log(`<<< pong`);
+    // onMessage && onMessage(message);
   });
 
   // ping
@@ -57,10 +56,16 @@ export default async function connect(options) {
 
   connect.client.addEventListener("close", function (event) {
     clearInterval(connect.client.timer);
-    console.info(`onclose: websocket已关闭, code:${event.code}, reason: ${event.reason})`);
-    if (event.code === 1000) return event.reason;
-    console.info(`${connectInterval / 1000}s后将重新连接websocket...`);
-    setTimeout(connect.bind(this, options), connectInterval);
+    console.info(`onclose: websocket已关闭, code:${event.code}, reason: ${event.reason}`);
+    if (event.code === 1000) {
+      onFail && onFail(event)
+    }
+    if (connectCount <= 0) {
+      onFail && onFail(new Error(`websocket重连失败`))
+    } else {
+      console.info(`${connectInterval / 1000}s后将继续进行${connectCount}次重连`)
+      setTimeout(connect.bind(this, { ...options, connectCount: --connectCount }), connectInterval)
+    }
   });
 
   connect.send = function (message) {
